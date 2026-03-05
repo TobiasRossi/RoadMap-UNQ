@@ -1,6 +1,6 @@
 # Roadmap Universitario
 
-Tracker de progreso académico para las carreras **TPI** (Tecnicatura en Programación Informática) y **LI** (Licenciatura en Informática) de la UNAJ, con planificador de horarios semanal.
+Tracker de progreso académico para las carreras **TPI** (Tecnicatura en Programación Informática) y **LI** (Licenciatura en Informática) de la UNQ, con planificador de horarios semanal.
 
 Sin frameworks. Sin bundler. Sin dependencias de runtime. Cinco archivos, abre con doble click.
 
