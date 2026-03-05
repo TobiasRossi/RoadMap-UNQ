@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roadmap LI</title>
+    <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="navbar-links">
+            <a href="tpi.html">💻 Roadmap TPI</a>
+            <a href="li.html" class="activo">🎓 Roadmap LI</a>
+            <a href="calendario.html">📅 Armar Calendario Semanal</a>
+        </div>
+        <button class="btn-tema" id="btn-tema" onclick="Tema.toggle()" title="Cambiar tema">🌙</button>
+    </nav>
+
+    <h1>Roadmap LI</h1>
+
+    <!-- progress bar -->
+    <div class="barra-progreso-wrapper">
+        <div class="barra-progreso-label">
+            <span>Progreso de la carrera</span>
+            <strong id="barra-pct">0%</strong>
+        </div>
+        <div class="barra-progreso-track">
+            <div class="barra-progreso-fill" id="barra-fill"></div>
+        </div>
+    </div>
+
+    <!-- stats -->
+    <div class="panel-stats">
+        <div class="stat-box">
+            <span class="titulo">Aprobadas</span>
+            <span class="valor" id="mat-aprobadas">0</span>
+        </div>
+        <div class="stat-box">
+            <span class="titulo">Restantes</span>
+            <span class="valor" id="mat-restantes">0</span>
+        </div>
+        <div class="stat-box">
+            <span class="titulo">Total</span>
+            <span class="valor" id="mat-total">0</span>
+        </div>
+        <div class="stat-box">
+            <span class="titulo">Créditos</span>
+            <span class="valor" id="cred-total">0</span>
+        </div>
+    </div>
+
+    <!-- credits by group -->
+    <div class="panel-creditos">
+        <span class="grupo-tag">CI: <span id="cred-CI">0</span></span>
+        <span class="grupo-tag">NBW: <span id="cred-NBW">0</span></span>
+        <span class="grupo-tag">W15BO: <span id="cred-W15BO">0</span></span>
+        <span class="grupo-tag">W12AV: <span id="cred-W12AV">0</span></span>
+        <span class="grupo-tag">W19OR: <span id="cred-W19OR">0</span></span>
+        <span class="grupo-tag">W12SF: <span id="cred-W12SF">0</span></span>
+        <span class="grupo-tag">Otros: <span id="cred-Otros">0</span></span>
+    </div>
+
+    <!-- filters -->
+    <div class="panel-filtros">
+        <select id="filtro-grupo" onchange="aplicarFiltros()">
+            <option value="Todos">Todos los Grupos</option>
+            <option value="CI">Ciclo Introductorio (CI)</option>
+            <option value="NBW">Núcleo Básico (NBW)</option>
+            <option value="W15BO">Cursos Básicos (W15BO)</option>
+            <option value="W12AV">Cursos Avanzados (W12AV)</option>
+            <option value="W19OR">Cursos Orientados (W19OR)</option>
+            <option value="W12SF">Seminario Final (W12SF)</option>
+            <option value="Otros">Otros Requisitos</option>
+        </select>
+        <select id="filtro-estado" onchange="aplicarFiltros()">
+            <option value="Todos">Todos los Estados</option>
+            <option value="aprobada">Aprobadas</option>
+            <option value="habilitada">Habilitadas</option>
+            <option value="bloqueada">Bloqueadas</option>
+            <option value="en-curso">En curso</option>
+        </select>
+        <button class="btn-reiniciar" onclick="reiniciarRoadmap()">🔄 Reiniciar</button>
+    </div>
+
+    <!-- simulation panel -->
+    <div class="panel-simulacion" id="panel-simulacion">
+        <div class="panel-simulacion-label">📖 Simulando cuatrimestre — <strong id="sim-cantidad">0</strong> materias en curso</div>
+        <div class="simulacion-stats">
+            <div class="sim-stat">Créditos nuevos: <span id="sim-creditos">+0</span></div>
+            <div class="sim-stat">Desbloquearía: <span id="sim-desbloquea">0</span> materias</div>
+        </div>
+        <button class="btn-sim-limpiar" onclick="limpiarSimulacion()">✕ Limpiar simulación</button>
+    </div>
+
+    <!-- subject grid -->
+    <div class="contenedor-materias" id="tablero"></div>
+
+    <script>
+        const materiasData = [
+            { id: "80005", nombre: "Elementos de Programación y Lógica", grupo: "CI", creditos: 10, requisitos: { materiasAprobadas: [], creditosNecesarios: {} } },
+            { id: "80003", nombre: "Matemática", grupo: "CI", creditos: 10, requisitos: { materiasAprobadas: [], creditosNecesarios: {} } },
+            { id: "80000", nombre: "Lectura y Escritura Académica", grupo: "CI", creditos: 10, requisitos: { materiasAprobadas: [], creditosNecesarios: {} } },
+            { id: "90028", nombre: "Inglés I", grupo: "Otros", creditos: 6, requisitos: { materiasAprobadas: [], creditosNecesarios: { "CI": 20 } } },
+            { id: "90000", nombre: "Inglés II", grupo: "Otros", creditos: 6, requisitos: { materiasAprobadas: [], creditosNecesarios: { "CI": 20 } } },
+            { id: "752", nombre: "Taller de Trabajo Universitario (TTU)", grupo: "Otros", creditos: 4, requisitos: { materiasAprobadas: [], creditosNecesarios: { "CI": 20 } } },
+            { id: "751", nombre: "Taller de Trabajo Intelectual (TTI)", grupo: "Otros", creditos: 4, requisitos: { materiasAprobadas: [], creditosNecesarios: { "CI": 20 } } },
+            { id: "487", nombre: "Introducción a la Programación", grupo: "NBW", creditos: 16, requisitos: { materiasAprobadas: [], creditosNecesarios: {} } },
+            { id: "1032", nombre: "Organización de Computadoras", grupo: "NBW", creditos: 12, requisitos: { materiasAprobadas: [], creditosNecesarios: { "CI": 30 } } },
+            { id: "1033", nombre: "Matemática I", grupo: "NBW", creditos: 16, requisitos: { materiasAprobadas: [], creditosNecesarios: { "CI": 30 } } },
+            { id: "1034", nombre: "Programación con Objetos I", grupo: "NBW", creditos: 16, requisitos: { materiasAprobadas: ["487"], creditosNecesarios: {} } },
+            { id: "1035", nombre: "Bases de Datos", grupo: "NBW", creditos: 12, requisitos: { materiasAprobadas: [], creditosNecesarios: { "CI": 30 } } },
+            { id: "1036", nombre: "Estructuras de Datos", grupo: "NBW", creditos: 12, requisitos: { materiasAprobadas: ["487"], creditosNecesarios: {} } },
+            { id: "1037", nombre: "Programación con Objetos II", grupo: "NBW", creditos: 12, requisitos: { materiasAprobadas: ["1034"], creditosNecesarios: {} } },
+            { id: "1038", nombre: "Redes de Computadoras", grupo: "NBW", creditos: 12, requisitos: { materiasAprobadas: ["1032"], creditosNecesarios: {} } },
+            { id: "1039", nombre: "Sistemas Operativos", grupo: "NBW", creditos: 12, requisitos: { materiasAprobadas: ["1032"], creditosNecesarios: {} } },
+            { id: "1041", nombre: "Matemática II", grupo: "NBW", creditos: 8, requisitos: { materiasAprobadas: ["1033"], creditosNecesarios: {} } },
+            { id: "1043", nombre: "Construcción de Interfaces de Usuario", grupo: "NBW", creditos: 12, requisitos: { materiasAprobadas: ["1037"], creditosNecesarios: {} } },
+            { id: "1044", nombre: "Estrategias de Persistencia", grupo: "NBW", creditos: 12, requisitos: { materiasAprobadas: ["1035", "1037"], creditosNecesarios: {} } },
+            { id: "1045", nombre: "Programación Funcional", grupo: "NBW", creditos: 8, requisitos: { materiasAprobadas: ["1036"], creditosNecesarios: {} } },
+            { id: "1047", nombre: "Laboratorio de Sistemas Operativos y Redes", grupo: "NBW", creditos: 8, requisitos: { materiasAprobadas: ["1038", "1039"], creditosNecesarios: {} } },
+            { id: "1307", nombre: "Algoritmos", grupo: "W15BO", creditos: 12, requisitos: { materiasAprobadas: ["1045"], creditosNecesarios: { "CI": 30 } } },
+            { id: "1308", nombre: "Ingeniería de Requerimientos", grupo: "W15BO", creditos: 8, requisitos: { materiasAprobadas: ["1042"], creditosNecesarios: {} } },
+            { id: "1306", nombre: "Lenguajes Formales y Autómatas", grupo: "W15BO", creditos: 8, requisitos: { materiasAprobadas: ["1302"], creditosNecesarios: { "NBW": 138 } } },
+            { id: "1305", nombre: "Práctica del Desarrollo de Software", grupo: "W15BO", creditos: 16, requisitos: { materiasAprobadas: ["1044", "1042", "1043"], creditosNecesarios: { "NBW": 138 } } },
+            { id: "1304", nombre: "Gestión de Proyectos de Desarrollo de Software", grupo: "W15BO", creditos: 8, requisitos: { materiasAprobadas: ["1308"], creditosNecesarios: { "NBW": 138 } } },
+            { id: "1303", nombre: "Seguridad de la Información", grupo: "W15BO", creditos: 8, requisitos: { materiasAprobadas: ["1047"], creditosNecesarios: { "NBW": 138 } } },
+            { id: "1302", nombre: "Lógica y Programación", grupo: "W15BO", creditos: 12, requisitos: { materiasAprobadas: ["1033"], creditosNecesarios: { "NBW": 138 } } },
+            { id: "1042", nombre: "Elementos de Ingeniería de Software", grupo: "W15BO", creditos: 12, requisitos: { materiasAprobadas: ["1037"], creditosNecesarios: { "NBW": 138 } } },
+            { id: "1040", nombre: "Programación Concurrente", grupo: "W15BO", creditos: 8, requisitos: { materiasAprobadas: ["1036"], creditosNecesarios: { "NBW": 138 } } },
+            { id: "842", nombre: "Matemática III", grupo: "W15BO", creditos: 8, requisitos: { materiasAprobadas: ["54"], creditosNecesarios: { "NBW": 138 } } },
+            { id: "604", nombre: "Probabilidad y Estadísticas", grupo: "W15BO", creditos: 12, requisitos: { materiasAprobadas: ["842"], creditosNecesarios: { "NBW": 138 } } },
+            { id: "54", nombre: "Análisis Matemático I", grupo: "W15BO", creditos: 12, requisitos: { materiasAprobadas: ["1041"], creditosNecesarios: { "NBW": 138 } } },
+            { id: "1316", nombre: "Aspectos Legales", grupo: "W12AV", creditos: 8, requisitos: { materiasAprobadas: [], creditosNecesarios: { "W15BO": 56, "NBW": 180 } } },
+            { id: "1315", nombre: "Parseo y Generación de Código", grupo: "W12AV", creditos: 8, requisitos: { materiasAprobadas: ["1306", "1312", "1047"], creditosNecesarios: { "CI": 30, "W15BO": 56, "NBW": 180 } } },
+            { id: "1314", nombre: "Arquitecturas de Computadoras", grupo: "W12AV", creditos: 8, requisitos: { materiasAprobadas: ["1310"], creditosNecesarios: { "CI": 30, "W15BO": 56, "NBW": 180 } } },
+            { id: "1313", nombre: "Arquitectura de Software II", grupo: "W12AV", creditos: 12, requisitos: { materiasAprobadas: ["1311", "1302"], creditosNecesarios: { "CI": 30, "W15BO": 56, "NBW": 180 } } },
+            { id: "1312", nombre: "Características de Lenguajes de Programación", grupo: "W12AV", creditos: 8, requisitos: { materiasAprobadas: ["1040", "1047"], creditosNecesarios: { "CI": 30, "W15BO": 56, "NBW": 180 } } },
+            { id: "1311", nombre: "Sistemas Distribuidos", grupo: "W12AV", creditos: 8, requisitos: { materiasAprobadas: ["1040", "1305", "1304"], creditosNecesarios: { "CI": 30, "W15BO": 56, "NBW": 180 } } },
+            { id: "1310", nombre: "Arquitectura de Software I", grupo: "W12AV", creditos: 12, requisitos: { materiasAprobadas: ["1303"], creditosNecesarios: { "CI": 30, "W15BO": 56, "NBW": 180 } } },
+            { id: "1309", nombre: "Teoría de la Computación", grupo: "W12AV", creditos: 8, requisitos: { materiasAprobadas: ["1306", "1037"], creditosNecesarios: { "CI": 30, "W15BO": 56, "NBW": 180 } } },
+            { id: "1051", nombre: "Programación con Objetos III", grupo: "W12AV", creditos: 8, requisitos: { materiasAprobadas: [], creditosNecesarios: { "CI": 30, "W15BO": 56, "NBW": 180 } } },
+            { id: "1745", nombre: "Ciencia de Datos", grupo: "W19OR", creditos: 8, requisitos: { materiasAprobadas: [], creditosNecesarios: { "W15BO": 112 } } },
+            { id: "1622", nombre: "Seminarios", grupo: "W19OR", creditos: 8, requisitos: { materiasAprobadas: [], creditosNecesarios: { "W15BO": 112 } } },
+            { id: "1466", nombre: "Algoritmos Avanzados", grupo: "W19OR", creditos: 8, requisitos: { materiasAprobadas: [], creditosNecesarios: { "W15BO": 112 } } },
+            { id: "1317", nombre: "Seminario Final", grupo: "W12SF", creditos: 20, requisitos: { materiasAprobadas: [], creditosNecesarios: {} } }
+        ];
+
+        const storageKey = 'roadmap_aprobadas';
+        const gruposDisponibles = ['CI', 'NBW', 'W15BO', 'W12AV', 'W19OR', 'W12SF', 'Otros'];
+    </script>
+    <script src="roadmap.js"></script>
+
+</body>
+</html>

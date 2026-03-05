@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roadmap TPI</title>
+    <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="navbar-links">
+            <a href="tpi.html" class="activo">💻 Roadmap TPI</a>
+            <a href="li.html">🎓 Roadmap LI</a>
+            <a href="calendario.html">📅 Armar Calendario Semanal</a>
+        </div>
+        <button class="btn-tema" id="btn-tema" onclick="Tema.toggle()" title="Cambiar tema">🌙</button>
+    </nav>
+
+    <h1>Roadmap TPI</h1>
+
+    <!-- progress bar -->
+    <div class="barra-progreso-wrapper">
+        <div class="barra-progreso-label">
+            <span>Progreso de la carrera</span>
+            <strong id="barra-pct">0%</strong>
+        </div>
+        <div class="barra-progreso-track">
+            <div class="barra-progreso-fill" id="barra-fill"></div>
+        </div>
+    </div>
+
+    <!-- stats -->
+    <div class="panel-stats">
+        <div class="stat-box">
+            <span class="titulo">Aprobadas</span>
+            <span class="valor" id="mat-aprobadas">0</span>
+        </div>
+        <div class="stat-box">
+            <span class="titulo">Restantes</span>
+            <span class="valor" id="mat-restantes">0</span>
+        </div>
+        <div class="stat-box">
+            <span class="titulo">Total</span>
+            <span class="valor" id="mat-total">0</span>
+        </div>
+        <div class="stat-box">
+            <span class="titulo">Créditos</span>
+            <span class="valor" id="cred-total">0</span>
+        </div>
+    </div>
+
+    <!-- credits by group -->
+    <div class="panel-creditos">
+        <span class="grupo-tag">CI: <span id="cred-CI">0</span></span>
+        <span class="grupo-tag">CO: <span id="cred-CO">0</span></span>
+        <span class="grupo-tag">CA: <span id="cred-CA">0</span></span>
+        <span class="grupo-tag">P10CO: <span id="cred-P10CO">0</span></span>
+        <span class="grupo-tag">Otros: <span id="cred-Otros">0</span></span>
+    </div>
+
+    <!-- filters -->
+    <div class="panel-filtros">
+        <select id="filtro-grupo" onchange="aplicarFiltros()">
+            <option value="Todos">Todos los Grupos</option>
+            <option value="CI">Ciclo Introductorio (CI)</option>
+            <option value="CO">Cursos Obligatorios (CO)</option>
+            <option value="CA">Cursos Avanzados (CA)</option>
+            <option value="P10CO">Complementarias (P10CO)</option>
+            <option value="Otros">Otros Requisitos</option>
+        </select>
+        <select id="filtro-estado" onchange="aplicarFiltros()">
+            <option value="Todos">Todos los Estados</option>
+            <option value="aprobada">Aprobadas</option>
+            <option value="habilitada">Habilitadas</option>
+            <option value="bloqueada">Bloqueadas</option>
+            <option value="en-curso">En curso</option>
+        </select>
+        <button class="btn-reiniciar" onclick="reiniciarRoadmap()">🔄 Reiniciar</button>
+    </div>
+
+    <!-- simulation panel -->
+    <div class="panel-simulacion" id="panel-simulacion">
+        <div class="panel-simulacion-label">📖 Simulando cuatrimestre — <strong id="sim-cantidad">0</strong> materias en curso</div>
+        <div class="simulacion-stats">
+            <div class="sim-stat">Créditos nuevos: <span id="sim-creditos">+0</span></div>
+            <div class="sim-stat">Desbloquearía: <span id="sim-desbloquea">0</span> materias</div>
+        </div>
+        <button class="btn-sim-limpiar" onclick="limpiarSimulacion()">✕ Limpiar simulación</button>
+    </div>
+
+    <!-- subject grid -->
+    <div class="contenedor-materias" id="tablero"></div>
+
+    <script>
+        const materiasData = [
+            { id: "80005", nombre: "Elementos de Programación y Lógica", grupo: "CI", creditos: 10, requisitos: { materiasAprobadas: [], creditosNecesarios: {} } },
+            { id: "80003", nombre: "Matemática", grupo: "CI", creditos: 10, requisitos: { materiasAprobadas: [], creditosNecesarios: {} } },
+            { id: "80000", nombre: "Lectura y Escritura Académica", grupo: "CI", creditos: 10, requisitos: { materiasAprobadas: [], creditosNecesarios: {} } },
+            { id: "90028", nombre: "Inglés I", grupo: "Otros", creditos: 6, requisitos: { materiasAprobadas: [], creditosNecesarios: { "CI": 20 } } },
+            { id: "90000", nombre: "Inglés II", grupo: "Otros", creditos: 6, requisitos: { materiasAprobadas: [], creditosNecesarios: { "CI": 20 } } },
+            { id: "1060", nombre: "Trabajo de Inserción Profesional (TIP)", grupo: "Otros", creditos: 20, requisitos: { materiasAprobadas: [], creditosNecesarios: { "CI": 30, "CO": 100, "CA": 104, "P10CO": 8 } } },
+            { id: "487", nombre: "Introducción a la Programación", grupo: "CO", creditos: 16, requisitos: { materiasAprobadas: [], creditosNecesarios: { "CI": 30 } } },
+            { id: "1032", nombre: "Organización de Computadoras", grupo: "CO", creditos: 12, requisitos: { materiasAprobadas: [], creditosNecesarios: { "CI": 30 } } },
+            { id: "1033", nombre: "Matemática I", grupo: "CO", creditos: 16, requisitos: { materiasAprobadas: [], creditosNecesarios: { "CI": 30 } } },
+            { id: "1034", nombre: "Programación con Objetos I", grupo: "CO", creditos: 16, requisitos: { materiasAprobadas: ["487"], creditosNecesarios: {} } },
+            { id: "1035", nombre: "Bases de Datos", grupo: "CO", creditos: 12, requisitos: { materiasAprobadas: [], creditosNecesarios: { "CI": 30 } } },
+            { id: "1036", nombre: "Estructura de Datos", grupo: "CO", creditos: 16, requisitos: { materiasAprobadas: ["487"], creditosNecesarios: {} } },
+            { id: "1037", nombre: "Programación con Objetos II", grupo: "CO", creditos: 12, requisitos: { materiasAprobadas: ["1034"], creditosNecesarios: {} } },
+            { id: "1038", nombre: "Redes de Computadoras", grupo: "CA", creditos: 12, requisitos: { materiasAprobadas: ["487", "1032"], creditosNecesarios: { "CI": 30, "CO": 70 } } },
+            { id: "1039", nombre: "Sistemas Operativos", grupo: "CA", creditos: 12, requisitos: { materiasAprobadas: ["487", "1032"], creditosNecesarios: { "CI": 30, "CO": 70 } } },
+            { id: "1040", nombre: "Programación Concurrente", grupo: "CA", creditos: 12, requisitos: { materiasAprobadas: ["1036", "1032"], creditosNecesarios: { "CI": 30, "CO": 70 } } },
+            { id: "1041", nombre: "Matemática II", grupo: "CA", creditos: 8, requisitos: { materiasAprobadas: ["80003"], creditosNecesarios: { "CI": 30 } } },
+            { id: "1042", nombre: "Elementos de Ingeniería de Software", grupo: "CA", creditos: 12, requisitos: { materiasAprobadas: ["1037"], creditosNecesarios: { "CI": 30, "CO": 70 } } },
+            { id: "1043", nombre: "Construcción de Interfaces de Usuario", grupo: "CA", creditos: 12, requisitos: { materiasAprobadas: ["1037"], creditosNecesarios: { "CI": 30, "CO": 70 } } },
+            { id: "1044", nombre: "Estrategias de Persistencia", grupo: "CA", creditos: 12, requisitos: { materiasAprobadas: ["1035", "1037"], creditosNecesarios: { "CI": 30, "CO": 70 } } },
+            { id: "1045", nombre: "Programación Funcional", grupo: "CA", creditos: 8, requisitos: { materiasAprobadas: ["1044", "1036"], creditosNecesarios: { "CI": 30, "CO": 70 } } },
+            { id: "1046", nombre: "Desarrollo de Aplicaciones", grupo: "CA", creditos: 8, requisitos: { materiasAprobadas: ["1043"], creditosNecesarios: {} } },
+            { id: "1047", nombre: "Laboratorio de Sistemas Operativos y Redes", grupo: "CA", creditos: 8, requisitos: { materiasAprobadas: ["1038", "1039"], creditosNecesarios: {} } },
+            { id: "101", nombre: "Taller de trabajo intelectual", grupo: "P10CO", creditos: 8, requisitos: { materiasAprobadas: [], creditosNecesarios: { "CO": 100, "CA": 52 } } },
+            { id: "646", nombre: "Seguridad Informática", grupo: "P10CO", creditos: 8, requisitos: { materiasAprobadas: [], creditosNecesarios: { "CO": 100, "CA": 52 } } },
+            { id: "1048", nombre: "Bases de Datos II", grupo: "P10CO", creditos: 8, requisitos: { materiasAprobadas: [], creditosNecesarios: { "CO": 100, "CA": 52 } } }
+        ];
+
+        const storageKey = 'roadmap_aprobadas';
+        const gruposDisponibles = ['CI', 'CO', 'CA', 'P10CO', 'Otros'];
+    </script>
+    <script src="roadmap.js"></script>
+
+</body>
+</html>

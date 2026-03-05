@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario Semanal</title>
+    <link rel="stylesheet" href="shared.css">
+    <style>
+        /* calendario-specific styles */
+
+        /* --- CONTROLES DE SELECCIÓN --- */
+        .controles {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 20px;
+            background: var(--bg-card);
+            padding: 18px 20px;
+            border-radius: 10px;
+            box-shadow: var(--shadow-sm);
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+            border: 1px solid var(--border-color);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .controles select {
+            padding: 9px 36px 9px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border-input);
+            font-size: 0.95rem;
+            min-width: 280px;
+            color: var(--text-primary);
+            background-color: var(--bg-input);
+            font-family: 'IBM Plex Sans', sans-serif;
+            cursor: pointer;
+            outline: none;
+            box-shadow: var(--shadow-sm);
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%238a95a3' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            transition: border-color 0.2s, background-color 0.3s, color 0.3s;
+        }
+
+        .controles select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(77,171,247,0.2);
+        }
+
+        .controles select:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-agregar {
+            padding: 9px 20px;
+            background-color: var(--btn-success-bg);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-family: 'IBM Plex Sans', sans-serif;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.15s;
+            box-shadow: var(--shadow-sm);
+            white-space: nowrap;
+        }
+
+        .btn-agregar:hover {
+            background-color: var(--btn-success-hover);
+            transform: translateY(-1px);
+        }
+
+        /* Botones de acción secundarios */
+        .controles-acciones {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 16px;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .btn-accion {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            font-size: 0.88rem;
+            font-weight: 600;
+            font-family: 'IBM Plex Sans', sans-serif;
+            cursor: pointer;
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .btn-accion:hover {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            transform: translateY(-1px);
+        }
+
+        .btn-accion.peligro:hover {
+            background: var(--btn-danger-bg);
+            border-color: var(--btn-danger-bg);
+        }
+
+        /* --- BADGE DE SOLAPAMIENTO --- */
+        .badge-solape {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffc107;
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            font-family: 'IBM Plex Mono', monospace;
+            margin-bottom: 12px;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+            display: none;
+        }
+
+        [data-theme="dark"] .badge-solape {
+            background: #3d2b00;
+            color: #ffd43b;
+            border-color: #ffa94d;
+        }
+
+        .badge-solape.visible {
+            display: flex;
+        }
+
+        /* --- CALENDARIO CSS GRID --- */
+        .calendario-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: var(--bg-card);
+            border-radius: 10px;
+            box-shadow: var(--shadow-sm);
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        /* Grid principal: 1 columna de hora + 6 días */
+        .grid-calendario {
+            display: grid;
+            grid-template-columns: 70px repeat(6, 1fr);
+            grid-template-rows: 40px repeat(30, 30px);
+            min-width: 780px;
+        }
+
+        /* Cabeceras */
+        .celda-header {
+            background-color: var(--bg-navbar);
+            color: var(--text-nav);
+            text-align: center;
+            font-weight: 700;
+            font-size: 0.88rem;
+            font-family: 'IBM Plex Mono', monospace;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-right: 1px solid rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            letter-spacing: 0.02em;
+        }
+
+        .hora-etiqueta {
+            text-align: right;
+            padding-right: 8px;
+            font-size: 0.78rem;
+            font-family: 'IBM Plex Mono', monospace;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            align-items: flex-start;
+            justify-content: flex-end;
+            padding-top: 4px;
+            background-color: var(--bg-body);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .celda-vacia {
+            border-right: 1px solid var(--border-color);
+            border-bottom: 1px dashed color-mix(in srgb, var(--border-color) 60%, transparent);
+            transition: border-color 0.3s;
+        }
+
+        .celda-vacia.hora-en-punto {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* --- BLOQUE DE CURSADA --- */
+        .bloque-cursada {
+            color: white;
+            margin: 2px;
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            overflow: hidden;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+            position: relative;
+            z-index: 10;
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+
+        .bloque-cursada:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transform: scale(1.01);
+            z-index: 20;
+        }
+
+        /* Bloque con solapamiento */
+        .bloque-cursada.solape {
+            outline: 2px solid #ffc107;
+            outline-offset: -2px;
+        }
+
+        .bloque-cursada .btn-eliminar {
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            background: rgba(0,0,0,0.3);
+            border: none;
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+            font-size: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.15s, background-color 0.15s;
+            line-height: 1;
+        }
+
+        .bloque-cursada:hover .btn-eliminar {
+            opacity: 1;
+        }
+
+        .bloque-cursada .btn-eliminar:hover {
+            background: #e74c3c;
+        }
+
+        .info-titulo {
+            font-weight: 700;
+            font-size: 0.8rem;
+            margin-bottom: 2px;
+            padding-right: 18px;
+            line-height: 1.2;
+        }
+
+        .info-detalle {
+            font-size: 0.7rem;
+            opacity: 0.85;
+            line-height: 1.3;
+        }
+
+        /* --- LISTA DE MATERIAS AGREGADAS --- */
+        .lista-horario {
+            max-width: 1200px;
+            margin: 16px auto 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chip-materia {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: white;
+            box-shadow: var(--shadow-sm);
+            font-family: 'IBM Plex Sans', sans-serif;
+        }
+
+        .chip-materia button {
+            background: rgba(255,255,255,0.25);
+            border: none;
+            color: white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            font-size: 9px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s;
+            line-height: 1;
+        }
+
+        .chip-materia button:hover {
+            background: rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="navbar-links">
+            <a href="tpi.html">💻 Roadmap TPI</a>
+            <a href="li.html">🎓 Roadmap LI</a>
+            <a href="calendario.html" class="activo">📅 Armar Calendario Semanal</a>
+        </div>
+        <button class="btn-tema" id="btn-tema" onclick="toggleTema()" title="Cambiar tema">🌙</button>
+    </nav>
+
+    <h1>Calendario Semanal</h1>
+
+    <!-- subject selector -->
+    <div class="controles">
+        <select id="select-materia" onchange="actualizarComisiones()">
+            <option value="">— Elegir materia —</option>
+        </select>
+
+        <select id="select-comision" disabled>
+            <option value="">— Elegir comisión —</option>
+        </select>
+
+        <button class="btn-agregar" onclick="agregarAlCalendario()">➕ Agregar</button>
+    </div>
+
+    <!-- toolbar actions -->
+    <div class="controles-acciones">
+        <button class="btn-accion" onclick="exportarImagen()">📸 Exportar imagen</button>
+        <button class="btn-accion" onclick="compartirURL()">🔗 Copiar link</button>
+        <button class="btn-accion peligro" onclick="limpiarTodo()">🗑️ Limpiar todo</button>
+    </div>
+
+    <!-- overlap warning badge -->
+    <div class="badge-solape" id="badge-solape">
+        ⚠️ <span id="badge-solape-texto">Hay solapamientos de horario</span>
+    </div>
+
+    <!-- selected subjects chips -->
+    <div class="lista-horario" id="lista-horario"></div>
+
+    
+    <div style="height: 16px;"></div>
+
+    <!-- schedule grid -->
+    <div class="calendario-container" id="calendario-exportable">
+        <div class="grid-calendario" id="grilla-calendario"></div>
+    </div>
+
+    <script>
+        // theme (standalone copy — calendario.html doesn't load roadmap.js)
+        const TEMA_KEY = 'roadmap_tema';
+
+        function aplicarTema(tema) {
+            document.documentElement.setAttribute('data-theme', tema);
+            const btn = document.getElementById('btn-tema');
+            if (btn) btn.textContent = tema === 'dark' ? '☀️' : '🌙';
+        }
+
+        function toggleTema() {
+            const actual = document.documentElement.getAttribute('data-theme') || 'light';
+            const nuevo = actual === 'dark' ? 'light' : 'dark';
+            localStorage.setItem(TEMA_KEY, nuevo);
+            aplicarTema(nuevo);
+        }
+
+        function initTema() {
+            const guardado = localStorage.getItem(TEMA_KEY);
+            const tema = guardado || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            aplicarTema(tema);
+        }
+
+        // data
+        const mapaDias = { 'Lun': 2, 'Mar': 3, 'Mie': 4, 'Jue': 5, 'Vie': 6, 'Sab': 7 };
+        const nombresDias = { 2: 'Lunes', 3: 'Martes', 4: 'Miércoles', 5: 'Jueves', 6: 'Viernes', 7: 'Sábado' };
+
+        const COLORES = [
+            '#3b82f6', '#f97316', '#8b5cf6', '#10b981',
+            '#ef4444', '#eab308', '#0891b2', '#db2777',
+            '#65a30d', '#6366f1'
+        ];
+
+        const ofertaMaterias = [
+            // --- LICENCIATURA ---
+            { nombre: "Algoritmos", comision: "1307-1-CW (Presencial)", clases: [ { dia: "Mar", inicio: 18, fin: 21, texto: "18:00 a 20:59" }, { dia: "Jue", inicio: 18, fin: 21, texto: "18:00 a 20:59" } ] },
+            { nombre: "Arquitectura de Computadoras", comision: "1314-1-CW (Virtual)", clases: [ { dia: "Vie", inicio: 18, fin: 22, texto: "18:00 a 21:59" } ] },
+            { nombre: "Arquitectura de Software II", comision: "1313-1-CW (Virtual)", clases: [ { dia: "Mie", inicio: 16, fin: 22, texto: "16:00 a 21:59" } ] },
+            { nombre: "Aspectos Legales y Sociales", comision: "1316-1-CW (Presencial)", clases: [ { dia: "Vie", inicio: 18, fin: 22, texto: "18:00 a 21:59" } ] },
+            { nombre: "Gestión de Proyectos de Desarrollo de Software", comision: "1304-1-CW (Presencial)", clases: [ { dia: "Lun", inicio: 18, fin: 22, texto: "18:00 a 21:59" } ] },
+            { nombre: "Lenguajes Formales y Autómatas", comision: "1306-1-G14 (Presencial)", clases: [ { dia: "Lun", inicio: 18, fin: 22, texto: "18:00 a 21:59" } ] },
+            { nombre: "Lógica y Programación", comision: "1302-1-G14 (Presencial)", clases: [ { dia: "Lun", inicio: 16, fin: 19, texto: "16:00 a 18:59" }, { dia: "Vie", inicio: 16, fin: 19, texto: "16:00 a 18:59" } ] },
+            { nombre: "Matemática III", comision: "842-1-CW (Presencial)", clases: [ { dia: "Lun", inicio: 18, fin: 20, texto: "18:00 a 19:59" }, { dia: "Jue", inicio: 18, fin: 20, texto: "18:00 a 19:59" } ] },
+            { nombre: "Parseo y Generación de Código", comision: "1315-1-CW (Virtual)", clases: [ { dia: "Mie", inicio: 18, fin: 22, texto: "18:00 a 21:59" } ] },
+            { nombre: "Práctica del Desarrollo de Software", comision: "1305-1-CW", clases: [ { dia: "Mar", inicio: 8, fin: 12, texto: "08:00 a 11:59 (Virtual)" }, { dia: "Jue", inicio: 18, fin: 22, texto: "18:00 a 21:59 (Virtual)" } ] },
+            { nombre: "Redes Neuronales", comision: "940-1-CW (Virtual)", clases: [ { dia: "Sab", inicio: 10, fin: 14, texto: "10:00 a 13:59" } ] },
+            { nombre: "Seguridad de la Información", comision: "1303-1-CW (Presencial)", clases: [ { dia: "Sab", inicio: 9, fin: 13, texto: "09:00 a 12:59" } ] },
+            { nombre: "Teoría de la Computación", comision: "1309-1-CW (Presencial)", clases: [ { dia: "Mar", inicio: 18, fin: 22, texto: "18:00 a 21:59" } ] },
+            { nombre: "Seminarios (Web Semántica)", comision: "1622-1-CW (Virtual)", clases: [ { dia: "Mar", inicio: 18, fin: 22, texto: "18:00 a 21:59" } ] },
+            { nombre: "Sistemas Distribuidos", comision: "1311-1-G14 (Presencial)", clases: [ { dia: "Mie", inicio: 18, fin: 22, texto: "18:00 a 21:59" } ] },
+
+            // --- TPI ---
+            { nombre: "Bases de Datos", comision: "1035-1/2-G14", clases: [ { dia: "Mar", inicio: 10, fin: 13, texto: "10:00 a 12:59" }, { dia: "Mie", inicio: 15, fin: 18, texto: "15:00 a 17:59" } ] },
+            { nombre: "Bases de Datos", comision: "1035-3/4-G14", clases: [ { dia: "Mar", inicio: 15, fin: 18, texto: "15:00 a 17:59" }, { dia: "Mie", inicio: 15, fin: 18, texto: "15:00 a 17:59" } ] },
+            { nombre: "Bases de Datos", comision: "1035-5/6-G14", clases: [ { dia: "Mar", inicio: 18, fin: 21, texto: "18:00 a 20:59" }, { dia: "Sab", inicio: 10, fin: 13, texto: "10:00 a 12:59" } ] },
+            { nombre: "Construcción de Interfaces de Usuario", comision: "1043-1-G14", clases: [ { dia: "Mie", inicio: 18.5, fin: 21, texto: "18:30 a 20:59" }, { dia: "Jue", inicio: 18.5, fin: 22, texto: "18:30 a 21:59 (Virtual)" } ] },
+            { nombre: "Desarrollo de Aplicaciones", comision: "1046-1-CP (Virtual)", clases: [ { dia: "Mar", inicio: 19, fin: 22, texto: "19:00 a 21:59" }, { dia: "Mie", inicio: 18, fin: 21, texto: "18:00 a 20:59" } ] },
+            { nombre: "Elementos de Ingeniería de Software", comision: "1042-1-G14", clases: [ { dia: "Lun", inicio: 18, fin: 22, texto: "18:00 a 21:59" }, { dia: "Mie", inicio: 19, fin: 21, texto: "19:00 a 20:59 (Virtual)" } ] },
+            { nombre: "Elementos de Ingeniería de Software", comision: "1042-2-G14 (Virtual)", clases: [ { dia: "Lun", inicio: 9, fin: 12, texto: "09:00 a 11:59" }, { dia: "Mie", inicio: 9, fin: 12, texto: "09:00 a 11:59" } ] },
+            { nombre: "Estrategias de Persistencia", comision: "1044-1/2-G14", clases: [ { dia: "Vie", inicio: 16, fin: 22, texto: "16:00 a 21:59" } ] },
+            { nombre: "Estructuras de Datos", comision: "1036-1/2/3-G14", clases: [ { dia: "Mar", inicio: 16, fin: 18, texto: "16:00 a 17:59" }, { dia: "Mar", inicio: 18, fin: 22, texto: "18:00 a 21:59 (Virtual)" }, { dia: "Jue", inicio: 16, fin: 18, texto: "16:00 a 17:59" } ] },
+            { nombre: "Estructuras de Datos", comision: "1036-4/5/6-G14", clases: [ { dia: "Mar", inicio: 14, fin: 18, texto: "14:00 a 17:59 (Virtual)" }, { dia: "Mar", inicio: 18, fin: 20, texto: "18:00 a 19:59" }, { dia: "Jue", inicio: 18, fin: 20, texto: "18:00 a 19:59" } ] },
+            { nombre: "Introducción a la Bioinformática", comision: "1052-1-G14", clases: [ { dia: "Mie", inicio: 18, fin: 22, texto: "18:00 a 21:59 (Virtual)" }, { dia: "Lun", inicio: 9.5, fin: 13, texto: "09:30 a 12:59" }, { dia: "Jue", inicio: 9.5, fin: 13, texto: "09:30 a 12:59" } ] },
+            { nombre: "Introducción a la Programación", comision: "487-1/4-G14", clases: [ { dia: "Sab", inicio: 9, fin: 10, texto: "09:00 a 09:59 (Virtual)" }, { dia: "Lun", inicio: 9.5, fin: 13, texto: "09:30 a 12:59" }, { dia: "Jue", inicio: 9.5, fin: 13, texto: "09:30 a 12:59" } ] },
+            { nombre: "Introducción a la Programación", comision: "487-5/7-G14", clases: [ { dia: "Sab", inicio: 9, fin: 10, texto: "09:00 a 09:59 (Virtual)" }, { dia: "Lun", inicio: 14, fin: 17.5, texto: "14:00 a 17:29" }, { dia: "Jue", inicio: 14, fin: 17.5, texto: "14:00 a 17:29" } ] },
+            { nombre: "Introducción a la Programación", comision: "487-8/11-G14", clases: [ { dia: "Sab", inicio: 9, fin: 10, texto: "09:00 a 09:59 (Virtual)" }, { dia: "Lun", inicio: 18, fin: 21.5, texto: "18:00 a 21:29" }, { dia: "Jue", inicio: 18, fin: 21.5, texto: "18:00 a 21:29" } ] },
+            { nombre: "Introducción a la Programación", comision: "487-12/14-G14", clases: [ { dia: "Sab", inicio: 9, fin: 10, texto: "09:00 a 09:59 (Virtual)" }, { dia: "Lun", inicio: 18.5, fin: 21.5, texto: "18:30 a 21:29 (Virtual)" }, { dia: "Jue", inicio: 18, fin: 21.5, texto: "18:00 a 21:29 (Virtual)" } ] },
+            { nombre: "Introducción al Desarrollo de Videojuegos", comision: "1056-1-G14", clases: [ { dia: "Vie", inicio: 18, fin: 22, texto: "18:00 a 21:59" } ] },
+            { nombre: "Laboratorio de Sistemas Operativos y Redes", comision: "1047-1-G14", clases: [ { dia: "Jue", inicio: 18, fin: 22, texto: "18:00 a 21:59" } ] },
+            { nombre: "Matemática I", comision: "1033-1-G14", clases: [ { dia: "Mar", inicio: 9, fin: 13, texto: "09:00 a 12:59" }, { dia: "Jue", inicio: 9, fin: 13, texto: "09:00 a 12:59" } ] },
+            { nombre: "Matemática I", comision: "1033-2/8-G14", clases: [ { dia: "Lun", inicio: 18, fin: 22, texto: "18:00 a 21:59" }, { dia: "Mie", inicio: 18, fin: 22, texto: "18:00 a 21:59" } ] },
+            { nombre: "Matemática I", comision: "1033-3-G14", clases: [ { dia: "Lun", inicio: 9, fin: 13, texto: "09:00 a 12:59" }, { dia: "Mie", inicio: 9, fin: 13, texto: "09:00 a 12:59" } ] },
+            { nombre: "Matemática I", comision: "1033-4-G14", clases: [ { dia: "Mar", inicio: 8, fin: 12, texto: "08:00 a 11:59" }, { dia: "Vie", inicio: 8, fin: 12, texto: "08:00 a 11:59" } ] },
+            { nombre: "Matemática I", comision: "1033-5-G14", clases: [ { dia: "Mar", inicio: 18, fin: 22, texto: "18:00 a 21:59" }, { dia: "Vie", inicio: 18, fin: 22, texto: "18:00 a 21:59" } ] },
+            { nombre: "Matemática I", comision: "1033-6-G14", clases: [ { dia: "Mar", inicio: 13, fin: 17, texto: "13:00 a 16:59" }, { dia: "Vie", inicio: 13, fin: 17, texto: "13:00 a 16:59" } ] },
+            { nombre: "Matemática I", comision: "1033-7-G14", clases: [ { dia: "Lun", inicio: 14, fin: 18, texto: "14:00 a 17:59" }, { dia: "Jue", inicio: 13, fin: 17, texto: "13:00 a 16:59" } ] },
+            { nombre: "Matemática II", comision: "1041-1-G14", clases: [ { dia: "Mar", inicio: 16, fin: 18, texto: "16:00 a 17:59" }, { dia: "Vie", inicio: 16, fin: 18, texto: "16:00 a 17:59" } ] },
+            { nombre: "Matemática II", comision: "1041-2-G14", clases: [ { dia: "Mar", inicio: 18, fin: 20, texto: "18:00 a 19:59" }, { dia: "Vie", inicio: 18, fin: 20, texto: "18:00 a 19:59" } ] },
+            { nombre: "Matemática II", comision: "1041-3-G14", clases: [ { dia: "Lun", inicio: 16, fin: 18, texto: "16:00 a 17:59" }, { dia: "Mie", inicio: 16, fin: 18, texto: "16:00 a 17:59" } ] },
+            { nombre: "Matemática II", comision: "1041-4-G14", clases: [ { dia: "Lun", inicio: 18, fin: 20, texto: "18:00 a 19:59" }, { dia: "Mie", inicio: 18, fin: 20, texto: "18:00 a 19:59" } ] },
+            { nombre: "Organización de Computadoras", comision: "1032-1/5-G14", clases: [ { dia: "Mar", inicio: 9, fin: 12, texto: "09:00 a 11:59" }, { dia: "Vie", inicio: 9, fin: 12, texto: "09:00 a 11:59" } ] },
+            { nombre: "Organización de Computadoras", comision: "1032-6-G14", clases: [ { dia: "Mar", inicio: 13, fin: 17, texto: "13:00 a 16:59" }, { dia: "Vie", inicio: 13, fin: 15, texto: "13:00 a 14:59 (Virtual)" } ] },
+            { nombre: "Organización de Computadoras", comision: "1032-7/8-G14", clases: [ { dia: "Mar", inicio: 15, fin: 18, texto: "15:00 a 17:59" }, { dia: "Vie", inicio: 15, fin: 18, texto: "15:00 a 17:59" } ] },
+            { nombre: "Organización de Computadoras", comision: "1032-9-G14 (Virtual)", clases: [ { dia: "Lun", inicio: 9, fin: 12, texto: "09:00 a 11:59" }, { dia: "Sab", inicio: 9, fin: 12, texto: "09:00 a 11:59" } ] },
+            { nombre: "Organización de Computadoras", comision: "1032-10/11-G14", clases: [ { dia: "Mar", inicio: 18, fin: 21, texto: "18:00 a 20:59" }, { dia: "Vie", inicio: 18, fin: 21, texto: "18:00 a 20:59" } ] },
+            { nombre: "Programacion Concurrente", comision: "1040-1-G14", clases: [ { dia: "Mar", inicio: 18, fin: 20, texto: "18:00 a 19:59" }, { dia: "Mie", inicio: 18, fin: 20, texto: "18:00 a 19:59" } ] },
+            { nombre: "Programacion Concurrente", comision: "1040-2-G14", clases: [ { dia: "Mar", inicio: 18, fin: 20, texto: "18:00 a 19:59" }, { dia: "Sab", inicio: 10, fin: 12, texto: "10:00 a 11:59" } ] },
+            { nombre: "Programación con Objetos I", comision: "1034-1-G14", clases: [ { dia: "Mar", inicio: 14, fin: 18, texto: "14:00 a 17:59" }, { dia: "Jue", inicio: 14, fin: 18, texto: "14:00 a 17:59" } ] },
+            { nombre: "Programación con Objetos I", comision: "1034-2-G14", clases: [ { dia: "Lun", inicio: 9, fin: 13, texto: "09:00 a 12:59" }, { dia: "Mie", inicio: 9, fin: 13, texto: "09:00 a 12:59" } ] },
+            { nombre: "Programación con Objetos I", comision: "1034-3/4-G14", clases: [ { dia: "Lun", inicio: 18, fin: 22, texto: "18:00 a 21:59" }, { dia: "Mie", inicio: 18, fin: 22, texto: "18:00 a 21:59" } ] },
+            { nombre: "Programación con Objetos II", comision: "1037-1-G14", clases: [ { dia: "Lun", inicio: 18, fin: 21, texto: "18:00 a 20:59" }, { dia: "Jue", inicio: 15, fin: 18, texto: "15:00 a 17:59" } ] },
+            { nombre: "Programación con Objetos II", comision: "1037-2-G14", clases: [ { dia: "Lun", inicio: 18, fin: 21, texto: "18:00 a 20:59" }, { dia: "Jue", inicio: 18, fin: 21, texto: "18:00 a 20:59" } ] },
+            { nombre: "Programación con Objetos III", comision: "1051-1-G14", clases: [ { dia: "Sab", inicio: 9, fin: 13, texto: "09:00 a 12:59" } ] },
+            { nombre: "Programación Funcional", comision: "1045-1/2-G14", clases: [ { dia: "Jue", inicio: 18, fin: 20, texto: "18:00 a 19:59" }, { dia: "Sab", inicio: 10, fin: 12, texto: "10:00 a 11:59 (Virtual)" } ] },
+            { nombre: "Redes de Computadoras", comision: "1038-1-G14", clases: [ { dia: "Mar", inicio: 8, fin: 12, texto: "08:00 a 11:59" }, { dia: "Jue", inicio: 9, fin: 11, texto: "09:00 a 10:59 (Virtual)" } ] },
+            { nombre: "Redes de Computadoras", comision: "1038-2-G14", clases: [ { dia: "Mar", inicio: 18, fin: 20, texto: "18:00 a 19:59" }, { dia: "Jue", inicio: 18, fin: 22, texto: "18:00 a 21:59 (Virtual)" } ] },
+            { nombre: "Redes de Computadoras", comision: "1038-3-G14", clases: [ { dia: "Mar", inicio: 20, fin: 22, texto: "20:00 a 21:59" }, { dia: "Jue", inicio: 18, fin: 22, texto: "18:00 a 21:59 (Virtual)" } ] },
+            { nombre: "Redes de Computadoras", comision: "1038-4-G14", clases: [ { dia: "Mar", inicio: 9, fin: 11, texto: "09:00 a 10:59 (Virtual)" }, { dia: "Jue", inicio: 18, fin: 22, texto: "18:00 a 21:59" } ] },
+            { nombre: "Seguridad Informática", comision: "646-1-CP", clases: [ { dia: "Sab", inicio: 9, fin: 13, texto: "09:00 a 12:59" } ] },
+            { nombre: "Seminarios: Introducción a Blockchain", comision: "1805-1-CP", clases: [ { dia: "Mar", inicio: 18, fin: 22, texto: "18:00 a 21:59" } ] },
+            { nombre: "Seminarios: Intro a Electrónica con Arduino", comision: "1058-1-G14", clases: [ { dia: "Jue", inicio: 14, fin: 18, texto: "14:00 a 17:59" } ] },
+            { nombre: "Sistemas Operativos", comision: "1039-1/2/3-G14", clases: [ { dia: "Lun", inicio: 19, fin: 22, texto: "19:00 a 21:59" }, { dia: "Mie", inicio: 19, fin: 22, texto: "19:00 a 21:59" } ] },
+            { nombre: "Trabajo de Inserción Profesional", comision: "1060-1-CP", clases: [ { dia: "Sab", inicio: 8, fin: 13, texto: "08:00 a 12:59" } ] }
+        ];
+
+        // state
+        let miHorario = []; // Array de oferta objects con colorIndex asignado
+
+        // init
+        function inicializarPantalla() {
+            initTema();
+            dibujarGrillaBase();
+            poblarSelectMaterias();
+            cargarDesdeURL();
+        }
+
+        // base grid
+        function dibujarGrillaBase() {
+            const grilla = document.getElementById('grilla-calendario');
+            grilla.innerHTML = '';
+
+            // Cabeceras de días
+            const dias = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+            dias.forEach((dia, index) => {
+                const div = document.createElement('div');
+                div.className = 'celda-header';
+                div.innerText = dia;
+                div.style.gridColumn = index + 1;
+                div.style.gridRow = 1;
+                grilla.appendChild(div);
+            });
+
+            // Filas de horas (08:00 a 22:00, tramos de 30 min)
+            for (let hora = 8; hora <= 22; hora++) {
+                const filaBase = (hora - 8) * 2 + 2;
+
+                // Etiqueta lateral
+                const divHora = document.createElement('div');
+                divHora.className = 'hora-etiqueta';
+                divHora.innerText = `${hora.toString().padStart(2, '0')}:00`;
+                divHora.style.gridColumn = 1;
+                divHora.style.gridRow = `${filaBase} / span 2`;
+                grilla.appendChild(divHora);
+
+                for (let dia = 2; dia <= 7; dia++) {
+                    // Celda hora en punto (bug fix: guión en el nombre de clase)
+                    const celdaPunto = document.createElement('div');
+                    celdaPunto.className = 'celda-vacia hora-en-punto';
+                    celdaPunto.style.gridColumn = dia;
+                    celdaPunto.style.gridRow = filaBase;
+                    grilla.appendChild(celdaPunto);
+
+                    // Celda media hora
+                    const celdaMedia = document.createElement('div');
+                    celdaMedia.className = 'celda-vacia';
+                    celdaMedia.style.gridColumn = dia;
+                    celdaMedia.style.gridRow = filaBase + 1;
+                    grilla.appendChild(celdaMedia);
+                }
+            }
+        }
+
+        // selectors
+        function poblarSelectMaterias() {
+            const sel = document.getElementById('select-materia');
+            const nombresUnicos = [...new Set(ofertaMaterias.map(m => m.nombre))].sort();
+            nombresUnicos.forEach(nombre => {
+                const opt = document.createElement('option');
+                opt.value = nombre;
+                opt.innerText = nombre;
+                sel.appendChild(opt);
+            });
+        }
+
+        function actualizarComisiones() {
+            const materiaElegida = document.getElementById('select-materia').value;
+            const selCom = document.getElementById('select-comision');
+            selCom.innerHTML = '<option value="">— Elegir comisión —</option>';
+
+            if (!materiaElegida) {
+                selCom.disabled = true;
+                return;
+            }
+
+            selCom.disabled = false;
+            ofertaMaterias
+                .filter(m => m.nombre === materiaElegida)
+                .forEach((oferta) => {
+                    const opt = document.createElement('option');
+                    const diasTexto = oferta.clases.map(c => `${c.dia} ${c.texto}`).join(' | ');
+                    opt.innerText = `${oferta.comision}  —  ${diasTexto}`;
+                    opt.dataset.ofertaObj = JSON.stringify(oferta);
+                    selCom.appendChild(opt);
+                });
+        }
+
+        // overlap detection
+        function detectarSolapamientos() {
+            // Construimos lista plana de {nombre, colorIndex, dia, inicio, fin}
+            const franjas = [];
+            miHorario.forEach(entry => {
+                entry.oferta.clases.forEach(clase => {
+                    franjas.push({
+                        nombre: entry.oferta.nombre,
+                        colorIndex: entry.colorIndex,
+                        dia: clase.dia,
+                        inicio: clase.inicio,
+                        fin: clase.fin
+                    });
+                });
+            });
+
+            const solapes = new Set();
+
+            for (let i = 0; i < franjas.length; i++) {
+                for (let j = i + 1; j < franjas.length; j++) {
+                    const a = franjas[i], b = franjas[j];
+                    if (a.dia === b.dia) {
+                        // Solapan si los intervalos se intersectan (no solo tocan)
+                        const solapan = a.inicio < b.fin && b.inicio < a.fin;
+                        if (solapan) {
+                            solapes.add(a.nombre);
+                            solapes.add(b.nombre);
+                        }
+                    }
+                }
+            }
+
+            return solapes;
+        }
+
+        function actualizarBadgeSolape(solapes) {
+            const badge = document.getElementById('badge-solape');
+            const texto = document.getElementById('badge-solape-texto');
+
+            if (solapes.size > 0) {
+                const lista = [...solapes].join(', ');
+                texto.textContent = `Solapamiento detectado: ${lista}`;
+                badge.classList.add('visible');
+            } else {
+                badge.classList.remove('visible');
+            }
+        }
+
+        // add/remove to schedule
+        function agregarAlCalendario() {
+            const selCom = document.getElementById('select-comision');
+            if (selCom.selectedIndex === 0) {
+                alert('Por favor elegí una comisión.');
+                return;
+            }
+
+            const oferta = JSON.parse(selCom.options[selCom.selectedIndex].dataset.ofertaObj);
+
+            if (miHorario.some(e => e.oferta.nombre === oferta.nombre)) {
+                alert('Ya agregaste una comisión de esta materia.');
+                return;
+            }
+
+            const colorIndex = miHorario.length % COLORES.length;
+            miHorario.push({ oferta, colorIndex });
+            renderizarTodo();
+        }
+
+        function eliminarMateria(nombreMateria) {
+            miHorario = miHorario.filter(e => e.oferta.nombre !== nombreMateria);
+            // Reasignamos colores para que no queden huecos
+            miHorario.forEach((e, i) => { e.colorIndex = i % COLORES.length; });
+            renderizarTodo();
+        }
+
+        function limpiarTodo() {
+            if (miHorario.length === 0) return;
+            if (!confirm('¿Borrar todo el horario?')) return;
+            miHorario = [];
+            renderizarTodo();
+        }
+
+        // render
+        function renderizarTodo() {
+            dibujarGrillaBase();
+            const grilla = document.getElementById('grilla-calendario');
+            const solapes = detectarSolapamientos();
+
+            miHorario.forEach(({ oferta, colorIndex }) => {
+                const color = COLORES[colorIndex];
+                const tienesolape = solapes.has(oferta.nombre);
+
+                oferta.clases.forEach(clase => {
+                    const div = document.createElement('div');
+                    div.className = 'bloque-cursada' + (tienesolape ? ' solape' : '');
+                    div.style.backgroundColor = color;
+
+                    const col   = mapaDias[clase.dia];
+                    const fila  = (clase.inicio - 8) * 2 + 2;
+                    const span  = (clase.fin - clase.inicio) * 2;
+
+                    div.style.gridColumn = col;
+                    div.style.gridRow = `${fila} / span ${span}`;
+
+                    // Nombre seguro para usar en el onclick (escapar comillas)
+                    const nombreEsc = oferta.nombre.replace(/'/g, "\\'");
+                    div.innerHTML = `
+                        <button class="btn-eliminar" onclick="eliminarMateria('${nombreEsc}')" title="Quitar">✕</button>
+                        <span class="info-titulo">${oferta.nombre}</span>
+                        <span class="info-detalle">${oferta.comision}</span>
+                        <span class="info-detalle">${clase.texto}</span>
+                    `;
+                    grilla.appendChild(div);
+                });
+            });
+
+            actualizarBadgeSolape(solapes);
+            actualizarChips(solapes);
+        }
+
+        function actualizarChips(solapes) {
+            const lista = document.getElementById('lista-horario');
+            lista.innerHTML = '';
+
+            miHorario.forEach(({ oferta, colorIndex }) => {
+                const chip = document.createElement('div');
+                chip.className = 'chip-materia';
+                chip.style.backgroundColor = COLORES[colorIndex];
+                if (solapes.has(oferta.nombre)) {
+                    chip.style.outline = '2px solid #ffc107';
+                    chip.style.outlineOffset = '1px';
+                }
+                const nombreEsc = oferta.nombre.replace(/'/g, "\\'");
+                chip.innerHTML = `
+                    ${oferta.nombre}
+                    <button onclick="eliminarMateria('${nombreEsc}')" title="Quitar">✕</button>
+                `;
+                lista.appendChild(chip);
+            });
+        }
+
+        // export as PNG (loads html2canvas on demand)
+        function exportarImagen() {
+            if (typeof html2canvas === 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+                script.onload = _hacerCaptura;
+                document.head.appendChild(script);
+            } else {
+                _hacerCaptura();
+            }
+        }
+
+        function _hacerCaptura() {
+            const el = document.getElementById('calendario-exportable');
+            html2canvas(el, {
+                backgroundColor: getComputedStyle(document.documentElement)
+                    .getPropertyValue('--bg-card').trim() || '#ffffff',
+                scale: 2,
+                useCORS: true
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'mi-horario.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+
+        // share via URL (base64-encoded state in ?horario=)
+        function compartirURL() {
+            if (miHorario.length === 0) {
+                alert('Tu horario está vacío. Agregá materias primero.');
+                return;
+            }
+
+            // Serializamos solo los datos mínimos: nombre + comision de cada entrada
+            const payload = miHorario.map(e => ({
+                n: e.oferta.nombre,
+                c: e.oferta.comision
+            }));
+
+            const encoded = btoa(encodeURIComponent(JSON.stringify(payload)));
+            const url = `${location.href.split('?')[0]}?horario=${encoded}`;
+
+            navigator.clipboard.writeText(url).then(() => {
+                alert('✅ Link copiado al portapapeles.\nCompartilo con quien quieras.');
+            }).catch(() => {
+                prompt('Copiá este link:', url);
+            });
+        }
+
+        function cargarDesdeURL() {
+            const params = new URLSearchParams(location.search);
+            const encoded = params.get('horario');
+            if (!encoded) return;
+
+            try {
+                const payload = JSON.parse(decodeURIComponent(atob(encoded)));
+                payload.forEach(({ n, c }) => {
+                    const oferta = ofertaMaterias.find(o => o.nombre === n && o.comision === c);
+                    if (oferta && !miHorario.some(e => e.oferta.nombre === n)) {
+                        miHorario.push({ oferta, colorIndex: miHorario.length % COLORES.length });
+                    }
+                });
+                if (miHorario.length > 0) renderizarTodo();
+            } catch(e) {
+                console.warn('URL de horario inválida:', e);
+            }
+        }
+
+        // boot
+        window.addEventListener('DOMContentLoaded', inicializarPantalla);
+    </script>
+</body>
+</html>
